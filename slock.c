@@ -34,7 +34,7 @@ typedef struct {
 static Lock **locks;
 static int nscreens;
 static Bool running = True;
-static double opacity = 0.5;
+static double opacity = 1.0;
 
 static void
 die(const char *errstr, ...) {
@@ -118,8 +118,15 @@ readpw(Display *dpy, const char *pws)
 #else
 				running = strcmp(crypt(passwd, pws), pws);
 #endif
-				if(running != False)
+				if(running != False) {
 					XBell(dpy, 100);
+
+					// screen markup
+					for(screen = 0; screen < nscreens; screen++) {
+						XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[1]);
+						XClearWindow(dpy, locks[screen]->win);
+					}
+				}
 				len = 0;
 				break;
 			case XK_Escape:
@@ -137,11 +144,6 @@ readpw(Display *dpy, const char *pws)
 				break;
 			}
 			if(llen == 0 && len != 0) {
-				for(screen = 0; screen < nscreens; screen++) {
-					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[1]);
-					XClearWindow(dpy, locks[screen]->win);
-				}
-			} else if(llen != 0 && len == 0) {
 				for(screen = 0; screen < nscreens; screen++) {
 					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[0]);
 					XClearWindow(dpy, locks[screen]->win);
@@ -290,6 +292,12 @@ main(int argc, char **argv) {
 		free(locks);
 		XCloseDisplay(dpy);
 		return 1;
+	}
+
+	// set initial color
+	for(screen = 0; screen < nscreens; screen++) {
+		XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[0]);
+		XClearWindow(dpy, locks[screen]->win);
 	}
 
 	/* Everything is now blank. Now wait for the correct password. */
